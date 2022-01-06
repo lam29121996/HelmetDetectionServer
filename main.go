@@ -43,10 +43,6 @@ func getHelmetDetectionResultHandler(w http.ResponseWriter, r *http.Request) {
 
 	resp := Response{}
 
-	go func() {
-		resCh <- "C:"
-	}()
-
 	select {
 	case res := <-resCh:
 		resp = Response{IsHelmetOn: false, PhotoPath: res}
