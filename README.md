@@ -1,7 +1,8 @@
-## Config
+## Default config
 ```sh
 {
-    "port": 8080
+    "port": 8080,
+    "timeout(ms)": 500
 }
 ```
 
@@ -9,6 +10,7 @@
 ```http
 GET /helmetDetectionResult
 ``` 
+
 ## Expected output:
 ```sh
 {

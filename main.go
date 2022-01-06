@@ -13,7 +13,8 @@ import (
 )
 
 type config struct {
-	Port int `json:"port"`
+	Port      int `json:"port"`
+	Timeoutms int `json:"timeout(ms)"`
 }
 
 var (
@@ -32,10 +33,12 @@ func postHelmetDetectionResultHandler(w http.ResponseWriter, r *http.Request) {
 	// Let see how camera send the photo to me, file / file path of the photo?
 	// no helmet detected -> the event is triggered -> send photo
 
-
+	resCh <- r.RequestURI
 }
 
 func getHelmetDetectionResultHandler(w http.ResponseWriter, r *http.Request) {
+	startAt := time.Now()
+
 	type Response struct {
 		IsHelmetOn bool   `json:"is_helmet_on"`
 		PhotoPath  string `json:"photo_path"`
@@ -46,7 +49,7 @@ func getHelmetDetectionResultHandler(w http.ResponseWriter, r *http.Request) {
 	select {
 	case res := <-resCh:
 		resp = Response{IsHelmetOn: false, PhotoPath: res}
-	case <-time.After(1 * time.Second):
+	case <-time.After(time.Duration(cfg.Timeoutms) * time.Millisecond):
 		resp = Response{IsHelmetOn: true, PhotoPath: ""}
 	}
 
@@ -56,7 +59,15 @@ func getHelmetDetectionResultHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write(b)
+	w.Header().Set("Content-Type", "application/json")
+
+	_, err = w.Write(b)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	log.Printf("GET request handled sucessfully in %s.\n", time.Since(startAt))
 }
 
 func init() {
@@ -78,6 +89,7 @@ func init() {
 		log.Panicln("Unmarshal config.json failed!", err)
 	}
 
+	// Make resCh
 	resCh = make(chan string)
 }
 
