@@ -28,7 +28,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func postHelmetDetectionResultHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println(r.URL)
+	// log.Println(r.URL)
 
 	// Let see how camera send the photo to me, file / file path of the photo?
 	// no helmet detected -> the event is triggered -> send photo
@@ -67,7 +67,7 @@ func getHelmetDetectionResultHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("GET request handled sucessfully in %s.\n", time.Since(startAt))
+	log.Printf("GET request handled sucessfully in %s.", time.Since(startAt))
 }
 
 func init() {
