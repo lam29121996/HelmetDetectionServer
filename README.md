@@ -23,8 +23,6 @@ GET /helmetDetectionResult
     "photo_path": "images/xxx.jpg"
 }
 ```
-
-
 ```http
 GET /images
 ```

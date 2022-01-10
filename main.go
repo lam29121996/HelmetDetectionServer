@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"time"
@@ -37,7 +40,35 @@ func postHelmetDetectionResultHandler(w http.ResponseWriter, r *http.Request) {
 	resCh <- r.RequestURI
 }
 
-func getHelmetDetectionResultHandler(w http.ResponseWriter, r *http.Request) {
+func createImage(w http.ResponseWriter, request *http.Request) {
+	err := request.ParseMultipartForm(32 << 20) // maxMemory 32MB
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	//Access the photo key - First Approach
+	file, h, err := request.FormFile("photo")
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	tmpfile, err := os.Create("./images/" + h.Filename)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	defer tmpfile.Close()
+
+	_, err = io.Copy(tmpfile, file)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+}
+
+func helmetDetectionResult(w http.ResponseWriter, r *http.Request) {
 	startAt := time.Now()
 
 	type Response struct {
@@ -98,8 +129,59 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", indexHandler)
 	r.HandleFunc("/helmetDetectionResult", postHelmetDetectionResultHandler).Methods("POST")
-	r.HandleFunc("/helmetDetectionResult", getHelmetDetectionResultHandler).Methods("GET")
+	r.HandleFunc("/createImage", createImage).Methods("POST")
+	r.HandleFunc("/helmetDetectionResult", helmetDetectionResult).Methods("GET")
 	r.PathPrefix("/images").Handler(http.StripPrefix("/images", http.FileServer(http.Dir(cfg.ImagesFilePath))))
 
+	go func() {
+		time.Sleep(3 * time.Second)
+		err := call("http://localhost:8080/createImage", "POST")
+		if err != nil {
+			log.Println(err)
+		}
+		log.Println("called!")
+	}()
+
 	http.ListenAndServe(fmt.Sprintf(":%d", cfg.Port), r)
+}
+
+func call(urlPath, method string) error {
+	client := &http.Client{
+		Timeout: time.Second * 10,
+	}
+
+	// New multipart writer.
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	fw, err := writer.CreateFormFile("photo", "five000000.png")
+	if err != nil {
+		return err
+	}
+
+	file, err := os.Open("five000000.png")
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(fw, file)
+	if err != nil {
+		return err
+	}
+
+	writer.Close()
+
+	req, err := http.NewRequest(method, urlPath, bytes.NewReader(body.Bytes()))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	rsp, _ := client.Do(req)
+	if rsp.StatusCode != http.StatusOK {
+		log.Printf("Request failed with response code: %d", rsp.StatusCode)
+	}
+
+	return nil
 }
