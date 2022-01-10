@@ -97,7 +97,7 @@ func init() {
 func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", indexHandler)
-	r.HandleFunc("/helmetDetectionResultReceiver", postHelmetDetectionResultHandler).Methods("POST")
+	r.HandleFunc("/helmetDetectionResult", postHelmetDetectionResultHandler).Methods("POST")
 	r.HandleFunc("/helmetDetectionResult", getHelmetDetectionResultHandler).Methods("GET")
 	r.PathPrefix("/images").Handler(http.StripPrefix("/images", http.FileServer(http.Dir(cfg.ImagesFilePath))))
 
