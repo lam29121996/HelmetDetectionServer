@@ -20,7 +20,7 @@ GET /helmetDetectionResult
 ```sh
 {
     "is_helmet_on": false,
-    "photo_path": "C:/xxx/xxx.jpg"
+    "photo_path": "images/xxx.jpg"
 }
 ```
 
