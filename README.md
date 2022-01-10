@@ -2,24 +2,25 @@
 ```sh
 {
     "port": 8080,
-    "timeout(ms)": 500
+    "timeout(ms)": 5000,
+    "images_file_path": "/Users/kelvinlam/Downloads/images"
 }
 ```
 
-## Request
+## Request & Expected output
 ```http
 GET /helmetDetectionResult
 ```
-```http
-GET /images
-```
-
-## Expected output:
 ```sh
 {
     "is_helmet_on": true,
     "photo_path": ""
 }
+```
+
+
+```http
+GET /images
 ```
 ```sh
 {
