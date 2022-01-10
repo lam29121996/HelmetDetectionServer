@@ -17,14 +17,14 @@ GET /helmetDetectionResult
     "photo_path": ""
 }
 ```
-
-
-```http
-GET /images
-```
 ```sh
 {
     "is_helmet_on": false,
     "photo_path": "C:/xxx/xxx.jpg"
 }
+```
+
+
+```http
+GET /images
 ```
