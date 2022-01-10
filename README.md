@@ -9,7 +9,10 @@
 ## Request
 ```http
 GET /helmetDetectionResult
-``` 
+```
+```http
+GET /images
+```
 
 ## Expected output:
 ```sh

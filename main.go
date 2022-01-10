@@ -13,8 +13,9 @@ import (
 )
 
 type config struct {
-	Port      int `json:"port"`
-	Timeoutms int `json:"timeout(ms)"`
+	Port           int    `json:"port"`
+	Timeoutms      int    `json:"timeout(ms)"`
+	ImagesFilePath string `json:"images_file_path"`
 }
 
 var (
@@ -96,8 +97,9 @@ func init() {
 func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", indexHandler)
-	r.HandleFunc("/helmetDetectionResult", postHelmetDetectionResultHandler).Methods("POST")
+	r.HandleFunc("/helmetDetectionResultReceiver", postHelmetDetectionResultHandler).Methods("POST")
 	r.HandleFunc("/helmetDetectionResult", getHelmetDetectionResultHandler).Methods("GET")
+	r.PathPrefix("/images").Handler(http.StripPrefix("/images", http.FileServer(http.Dir(cfg.ImagesFilePath))))
 
 	http.ListenAndServe(fmt.Sprintf(":%d", cfg.Port), r)
 }
