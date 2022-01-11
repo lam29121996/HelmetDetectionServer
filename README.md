@@ -31,4 +31,4 @@ GET /images/
 </pre>
 
 
-[My image](username.github.com/repository/img/image.jpg)
+![My image](username.github.com/repository/img/image.jpg)
