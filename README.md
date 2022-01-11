@@ -34,5 +34,7 @@ GET /images/
 <a href="testn.jpg">testn.jpg</a>
 </pre>
 
-
+```http
+GET /images/
+```
 ![My image](/images/test1.jpg)
