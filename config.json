@@ -1,5 +1,5 @@
 {
     "port": 8080,
     "timeout(ms)": 5000,
-    "images_file_path": "/Users/kelvinlam/Documents/Personal/Photos for CV"
+    "images_file_path": "./images"
 }

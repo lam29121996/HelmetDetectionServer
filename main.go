@@ -128,13 +128,56 @@ func init() {
 func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", indexHandler)
-	r.HandleFunc("/helmetDetectionResult", postHelmetDetectionResultHandler).Methods("POST")
+	// r.HandleFunc("/helmetDetectionResult", postHelmetDetectionResultHandler).Methods("POST")
 	r.HandleFunc("/createImage", createImage).Methods("POST")
 	r.HandleFunc("/helmetDetectionResult", helmetDetectionResult).Methods("GET")
-	r.PathPrefix("/images").Handler(http.StripPrefix("/images", http.FileServer(http.Dir(cfg.ImagesFilePath))))
+	r.PathPrefix("/images").Handler(http.StripPrefix("/images", http.FileServer(http.Dir(cfg.ImagesFilePath)))).Methods("GET")
 
+	// Client routine
 	go func() {
 		time.Sleep(3 * time.Second)
+
+		call := func(urlPath, method string) error {
+			client := &http.Client{
+				Timeout: time.Second * 10,
+			}
+
+			// New multipart writer.
+			body := &bytes.Buffer{}
+			writer := multipart.NewWriter(body)
+
+			fw, err := writer.CreateFormFile("photo", "five000000.png")
+			if err != nil {
+				return err
+			}
+
+			file, err := os.Open("five000000.png")
+			if err != nil {
+				return err
+			}
+
+			_, err = io.Copy(fw, file)
+			if err != nil {
+				return err
+			}
+
+			writer.Close()
+
+			req, err := http.NewRequest(method, urlPath, bytes.NewReader(body.Bytes()))
+			if err != nil {
+				return err
+			}
+
+			req.Header.Set("Content-Type", writer.FormDataContentType())
+
+			rsp, _ := client.Do(req)
+			if rsp.StatusCode != http.StatusOK {
+				log.Printf("Request failed with response code: %d", rsp.StatusCode)
+			}
+
+			return nil
+		}
+
 		err := call("http://localhost:8080/createImage", "POST")
 		if err != nil {
 			log.Println(err)
@@ -143,45 +186,4 @@ func main() {
 	}()
 
 	http.ListenAndServe(fmt.Sprintf(":%d", cfg.Port), r)
-}
-
-func call(urlPath, method string) error {
-	client := &http.Client{
-		Timeout: time.Second * 10,
-	}
-
-	// New multipart writer.
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-
-	fw, err := writer.CreateFormFile("photo", "five000000.png")
-	if err != nil {
-		return err
-	}
-
-	file, err := os.Open("five000000.png")
-	if err != nil {
-		return err
-	}
-
-	_, err = io.Copy(fw, file)
-	if err != nil {
-		return err
-	}
-
-	writer.Close()
-
-	req, err := http.NewRequest(method, urlPath, bytes.NewReader(body.Bytes()))
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-
-	rsp, _ := client.Do(req)
-	if rsp.StatusCode != http.StatusOK {
-		log.Printf("Request failed with response code: %d", rsp.StatusCode)
-	}
-
-	return nil
 }

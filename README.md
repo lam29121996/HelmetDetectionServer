@@ -3,7 +3,7 @@
 {
     "port": 8080,
     "timeout(ms)": 5000,
-    "images_file_path": "/Users/kelvinlam/Downloads/images"
+    "images_file_path": "./images"
 }
 ```
 
@@ -24,5 +24,11 @@ GET /helmetDetectionResult
 }
 ```
 ```http
-GET /images
+GET /images/
 ```
+<pre>
+<a href="five000000.png">five000000.png</a>
+</pre>
+
+
+[My image](username.github.com/repository/img/image.jpg)
