@@ -182,7 +182,7 @@ func main() {
 		if err != nil {
 			log.Println(err)
 		}
-		log.Println("called!")
+		log.Println("client called!")
 	}()
 
 	http.ListenAndServe(fmt.Sprintf(":%d", cfg.Port), r)

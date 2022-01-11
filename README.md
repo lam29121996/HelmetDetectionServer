@@ -27,14 +27,14 @@ GET /helmetDetectionResult
 GET /images/
 ```
 <pre>
-<a href="test1.jpg">test1.jpg</a>
-<a href="test2.jpg">test2.jpg</a>
-<a href="test3.jpg">test3.jpg</a>
+<a href="test_1.jpg">test_1.jpg</a>
+<a href="test_2.jpg">test_2.jpg</a>
+<a href="test_3.jpg">test_3.jpg</a>
 ...
-<a href="testn.jpg">testn.jpg</a>
+<a href="test_n.jpg">test_n.jpg</a>
 </pre>
 
 ```http
-GET /images/test1.jpg
+GET /images/test_1.jpg
 ```
-![My image](/images/test1.jpg)
+![My image](/images/test_1.jpg)
