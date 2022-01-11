@@ -31,4 +31,4 @@ GET /images/
 </pre>
 
 
-![My image](lam29121996.github.com/helmet_detection_server/images/test1.jpg)
+![My image](/images/test1.jpg)
