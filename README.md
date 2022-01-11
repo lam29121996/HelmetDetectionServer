@@ -35,6 +35,6 @@ GET /images/
 </pre>
 
 ```http
-GET /images/
+GET /images/test1.jpg
 ```
 ![My image](/images/test1.jpg)
