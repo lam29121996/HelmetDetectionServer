@@ -27,7 +27,11 @@ GET /helmetDetectionResult
 GET /images/
 ```
 <pre>
-<a href="five000000.png">five000000.png</a>
+<a href="test1.jpg">test1.jpg</a>
+<a href="test2.jpg">test2.jpg</a>
+<a href="test3.jpg">test3.jpg</a>
+...
+<a href="testn.jpg">testn.jpg</a>
 </pre>
 
 
