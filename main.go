@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -16,6 +18,7 @@ import (
 )
 
 type config struct {
+	DebugMode                int    `json:"debug_mode"`
 	Port                     int    `json:"port"`
 	Timeoutms                int    `json:"timeout(ms)"`
 	ImagesHiuMingFolderPath  string `json:"images_hiu_ming_folder_path"`
@@ -26,6 +29,7 @@ type config struct {
 	RecordTo                 string `json:"record_to"`
 	recordToHour             int
 	recordToMinute           int
+	CaptureIntervalms        int `json:"capture_interval(ms)"`
 }
 
 var (
@@ -35,18 +39,33 @@ var (
 	imagesHiuKwongLastUpdateAt time.Time
 )
 
-func toFileName(t time.Time, id string) string {
+func toFileName(t time.Time, from string) string {
 	str := t.Format(time.RFC3339)
 	str = str[:19]
 	str = strings.ReplaceAll(str, "T", "_")
 	str = strings.ReplaceAll(str, ":", "_")
 
-	if id == "1" {
-		return fmt.Sprintf("%s/%s.jpg", cfg.ImagesHiuMingFolderPath, str)
+	if from == "hiuMing" {
+		path := fmt.Sprintf("%s/%s", cfg.ImagesHiuMingFolderPath, str[:10])
+		if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+			err := os.Mkdir(path, os.ModePerm)
+			if err != nil {
+				log.Println(err)
+			}
+		}
+
+		return fmt.Sprintf("%s/%s/%s.jpg", cfg.ImagesHiuMingFolderPath, str[:10], str)
 	}
 
-	if id == "2" {
-		return fmt.Sprintf("%s/%s.jpg", cfg.ImagesHiuKwongFolderPath, str)
+	if from == "hiuKwong" {
+		path := fmt.Sprintf("%s/%s", cfg.ImagesHiuKwongFolderPath, str[:10])
+		if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+			err := os.Mkdir(path, os.ModePerm)
+			if err != nil {
+				log.Println(err)
+			}
+		}
+		return fmt.Sprintf("%s/%s/%s.jpg", cfg.ImagesHiuKwongFolderPath, str[:10], str)
 	}
 
 	return ""
@@ -68,23 +87,29 @@ func createImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id := r.URL.Query().Get("id")
+	from := r.URL.Query().Get("from")
 
-	switch id {
-	case "1":
+	switch from {
+	case "hiuMing":
+		if now.Sub(imagesHiuMingLastUpdateAt) <= time.Duration(cfg.CaptureIntervalms)*time.Millisecond {
+			return
+		}
 		imagesHiuMingLastUpdateAt = now
-	case "2":
+	case "hiuKwong":
+		if now.Sub(imagesHiuKwongLastUpdateAt) <= time.Duration(cfg.CaptureIntervalms)*time.Millisecond {
+			return
+		}
 		imagesHiuKwongLastUpdateAt = now
 	default:
-		log.Println("no ID!")
+		log.Println("without from!")
 	}
 
-	file, err := os.Create(toFileName(now, id))
+	file, err := os.Create(toFileName(now, from))
 	if err != nil {
 		log.Println("os.Create failed!", err)
 	}
 
-	log.Printf("Images from id: %s created!\n", id)
+	log.Printf("Images from: %s created!\n", from)
 
 	defer file.Close()
 
@@ -96,10 +121,10 @@ func createImage(w http.ResponseWriter, r *http.Request) {
 
 func helmetDetectionResult(w http.ResponseWriter, r *http.Request) {
 	startAt := time.Now()
-	id := r.URL.Query().Get("id")
+	from := r.URL.Query().Get("from")
 
-	if id == "" {
-		w.Write([]byte("ID required!"))
+	if from == "" {
+		w.Write([]byte("from required!"))
 		return
 	}
 
@@ -112,21 +137,21 @@ func helmetDetectionResult(w http.ResponseWriter, r *http.Request) {
 
 	time.Sleep(time.Duration(cfg.Timeoutms) * time.Millisecond)
 
-	switch id {
-	case "1":
+	switch from {
+	case "hiuMing":
 		if time.Since(imagesHiuMingLastUpdateAt) <= time.Duration(cfg.Timeoutms)*time.Millisecond {
-			resp = Response{IsHelmetOn: false, ImagePath: toFileName(imagesHiuMingLastUpdateAt, id)}
+			resp = Response{IsHelmetOn: false, ImagePath: toFileName(imagesHiuMingLastUpdateAt, from)}
 		} else {
 			resp = Response{IsHelmetOn: true, ImagePath: ""}
 		}
-	case "2":
+	case "hiuKwong":
 		if time.Since(imagesHiuKwongLastUpdateAt) <= time.Duration(cfg.Timeoutms)*time.Millisecond {
-			resp = Response{IsHelmetOn: false, ImagePath: toFileName(imagesHiuKwongLastUpdateAt, id)}
+			resp = Response{IsHelmetOn: false, ImagePath: toFileName(imagesHiuKwongLastUpdateAt, from)}
 		} else {
 			resp = Response{IsHelmetOn: true, ImagePath: ""}
 		}
 	default:
-		w.Write([]byte("invalid ID!"))
+		w.Write([]byte("invalid from!"))
 		return
 	}
 
@@ -192,52 +217,54 @@ func main() {
 	r.PathPrefix("/hiuMingImages").Handler(http.StripPrefix("/hiuMingImages", http.FileServer(http.Dir(cfg.ImagesHiuMingFolderPath)))).Methods("GET")
 	r.PathPrefix("/hiuKwongImages").Handler(http.StripPrefix("/hiuKwongImages", http.FileServer(http.Dir(cfg.ImagesHiuKwongFolderPath)))).Methods("GET")
 
-	// Client routine
-	/*
-		go func() {
-			call := func(urlPath, method string) error {
-				client := &http.Client{
-					Timeout: time.Second * 10,
-				}
+	// Debug routine
+	go func() {
+		if cfg.DebugMode == 0 {
+			return
+		}
 
-				img, err := os.Open("five000000.png")
+		call := func(urlPath, method string) error {
+			client := &http.Client{
+				Timeout: time.Second * 10,
+			}
+
+			img, err := os.Open("Order. W870672511 Cancelled.png")
+			if err != nil {
+				log.Println(err)
+			}
+
+			defer img.Close()
+
+			req, err := http.NewRequest(method, urlPath, img)
+			if err != nil {
+				return err
+			}
+
+			req.Header.Set("Content-Type", "image")
+
+			rsp, _ := client.Do(req)
+			if rsp.StatusCode != http.StatusOK {
+				log.Printf("Request failed with response code: %d", rsp.StatusCode)
+			}
+
+			return nil
+		}
+
+		reader := bufio.NewReader(os.Stdin)
+
+		for {
+			reader.ReadString('\n')
+
+			for i := 0; i < 3; i++ {
+				err := call("http://localhost:8080/createImage?from=hiuMing", "POST")
+				log.Println("client called!")
 				if err != nil {
 					log.Println(err)
 				}
-
-				defer img.Close()
-
-				req, err := http.NewRequest(method, urlPath, img)
-				if err != nil {
-					return err
-				}
-
-				req.Header.Set("Content-Type", "image")
-
-				rsp, _ := client.Do(req)
-				if rsp.StatusCode != http.StatusOK {
-					log.Printf("Request failed with response code: %d", rsp.StatusCode)
-				}
-
-				return nil
+				time.Sleep(1 * time.Second)
 			}
-
-			reader := bufio.NewReader(os.Stdin)
-
-			for {
-				reader.ReadString('\n')
-
-				for i := 0; i < 3; i++ {
-					err := call("http://localhost:8080/createImage", "POST")
-					log.Println("client called!")
-					if err != nil {
-						log.Println(err)
-					}
-					time.Sleep(1 * time.Second)
-				}
-			}
-		}()
-	*/
+		}
+	}()
 
 	log.Printf("This server only save no helmet photo from %s to %s.\n", cfg.RecordFrom, cfg.RecordTo)
 	log.Printf("Listen & Serve at port: %d", cfg.Port)
