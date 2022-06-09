@@ -1,10 +1,10 @@
 {
-    "debug_mode": 0,
+    "debug_mode": 1,
     "port": 8080,
-    "timeout(ms)": 3500,
+    "timeout(ms)": 2500,
     "images_hiu_ming_folder_path": "./hiuMingImages",
     "images_hiu_kwong_folder_path": "./hiuKwongImages",
     "record_from": "07:30",
-    "record_to": "18:30",
+    "record_to": "18:35",
     "capture_interval(ms)": 1500
 }

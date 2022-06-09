@@ -82,7 +82,7 @@ func createImage(w http.ResponseWriter, r *http.Request) {
 		log.Println("too early!")
 		return
 	}
-	if (now.Hour() == cfg.recordToHour && now.Minute() > cfg.recordToMinute) || now.Hour() >= cfg.recordToHour {
+	if (now.Hour() == cfg.recordToHour && now.Minute() > cfg.recordToMinute) || now.Hour() > cfg.recordToHour {
 		log.Println("too late!")
 		return
 	}
@@ -174,6 +174,57 @@ func helmetDetectionResult(w http.ResponseWriter, r *http.Request) {
 	log.Printf("GET request handled sucessfully in %s.", time.Since(startAt))
 }
 
+func debug() {
+	call := func(urlPath, method string) error {
+		client := &http.Client{
+			Timeout: time.Second * 10,
+		}
+
+		img, err := os.Open("Order. W870672511 Cancelled.png")
+		if err != nil {
+			log.Println(err)
+		}
+
+		defer img.Close()
+
+		req, err := http.NewRequest(method, urlPath, img)
+		if err != nil {
+			return err
+		}
+
+		req.Header.Set("Content-Type", "image")
+
+		rsp, _ := client.Do(req)
+		if rsp.StatusCode != http.StatusOK {
+			log.Printf("Request failed with response code: %d", rsp.StatusCode)
+		}
+
+		return nil
+
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+
+	for {
+		reader.ReadString('\n')
+
+		for i := 0; i < 3; i++ {
+			err := call("http://localhost:8080/createImage?from=hiuMing", "POST")
+			log.Println("client called from hiuMing!")
+			if err != nil {
+				log.Println(err)
+			}
+			time.Sleep(1 * time.Second)
+		}
+
+		err := call("http://localhost:8080/createImage?from=hiuKwong", "POST")
+		log.Println("client called from hiuKwong!")
+		if err != nil {
+			log.Println(err)
+		}
+	}
+}
+
 func init() {
 	// Read config.json
 	b, err := ioutil.ReadFile("config.json")
@@ -217,54 +268,9 @@ func main() {
 	r.PathPrefix("/hiuMingImages").Handler(http.StripPrefix("/hiuMingImages", http.FileServer(http.Dir(cfg.ImagesHiuMingFolderPath)))).Methods("GET")
 	r.PathPrefix("/hiuKwongImages").Handler(http.StripPrefix("/hiuKwongImages", http.FileServer(http.Dir(cfg.ImagesHiuKwongFolderPath)))).Methods("GET")
 
-	// Debug routine
-	go func() {
-		if cfg.DebugMode == 0 {
-			return
-		}
-
-		call := func(urlPath, method string) error {
-			client := &http.Client{
-				Timeout: time.Second * 10,
-			}
-
-			img, err := os.Open("Order. W870672511 Cancelled.png")
-			if err != nil {
-				log.Println(err)
-			}
-
-			defer img.Close()
-
-			req, err := http.NewRequest(method, urlPath, img)
-			if err != nil {
-				return err
-			}
-
-			req.Header.Set("Content-Type", "image")
-
-			rsp, _ := client.Do(req)
-			if rsp.StatusCode != http.StatusOK {
-				log.Printf("Request failed with response code: %d", rsp.StatusCode)
-			}
-
-			return nil
-		}
-
-		reader := bufio.NewReader(os.Stdin)
-
-		for {
-			reader.ReadString('\n')
-
-			for i := 0; i < 3; i++ {
-				err := call("http://localhost:8080/createImage?from=hiuMing", "POST")
-				log.Println("client called!")
-				if err != nil {
-					log.Println(err)
-				}
-				time.Sleep(1 * time.Second)
-			}
-		}
-	}()
+	if cfg.DebugMode != 0 {
+		go debug()
+	}
 
 	log.Printf("This server only save no helmet photo from %s to %s.\n", cfg.RecordFrom, cfg.RecordTo)
 	log.Printf("Listen & Serve at port: %d", cfg.Port)
