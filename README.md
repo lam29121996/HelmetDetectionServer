@@ -24,8 +24,7 @@ GET /helmetDetectionResult?id=1
     "is_helmet_on": true,
     "photo_path": ""
 }
-```
-```sh
+OR
 {
     "is_helmet_on": false,
     "photo_path": "images/xxx.jpg"
