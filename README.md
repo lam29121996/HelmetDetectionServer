@@ -45,4 +45,3 @@ GET /images/
 ```http
 GET /images/test_1.jpg
 ```
-![My image](/images/test_1.jpg)
